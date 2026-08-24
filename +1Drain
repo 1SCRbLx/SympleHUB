@@ -1,0 +1,793 @@
+--==================================================
+--// SympleHUB
+--// FINAL
+--==================================================
+
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
+
+local LocalPlayer = Players.LocalPlayer
+local Remote = ReplicatedStorage:WaitForChild("Remote")
+
+--==================================================
+-- REMOTES
+--==================================================
+
+local ClickEvent =
+    Remote.Event.Level["[C-S]Click"]
+
+local SellFish =
+    Remote.Function.Fish["[C-S]SellAllFish"]
+
+local BestFish =
+    Remote.Function.Ranking.GetYourBestAll
+
+local Rebirth =
+    Remote.Event.Rebirth["[C - S]TryRebirth"]
+
+local Upgrade =
+    Remote.Event.Upgrade["[C-S]BuyCashUpgrade"]
+
+local OpenEgg =
+    Remote.Function.Egg["[C-S]OpenEgg"]
+
+local BuyPump =
+    Remote.Event.Pump["[C-S]BuyCashPump"]
+
+local BuyAura =
+    Remote.Event.Aura["[C-S]BuyCashAura"]
+
+--==================================================
+-- SETTINGS
+--==================================================
+
+local AutoClick = false
+local AutoSell = false
+local AutoBestFish = false
+local AutoRebirth = false
+
+local UpgradeSpeed = false
+local UpgradeBackpack = false
+local UpgradeFishDisplay = false
+
+local AutoEgg = false
+local AutoPump = false
+local AutoAura = false
+
+local AntiAFK = false
+local AntiLag = false
+local MuteSFX = false
+local HideNotifications = false
+
+local EggType = 1
+local EggAmount = 1
+
+local WalkSpeed = 16
+
+-- ID range used for Best Pump / Best Aura
+local PUMP_MAX_ID = 20
+local AURA_MAX_ID = 20
+
+--==================================================
+-- WINDOW
+--==================================================
+
+local Window = Rayfield:CreateWindow({
+    Name = "SympleHUB",
+
+    LoadingTitle = "SympleHUB",
+    LoadingSubtitle = "Automation Hub",
+
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "SympleHUB",
+        FileName = "Settings"
+    },
+
+    Discord = {
+        Enabled = false
+    },
+
+    KeySystem = false
+})
+
+--==================================================
+-- MAIN
+--==================================================
+
+local MainTab = Window:CreateTab("Main", 4483362458)
+
+MainTab:CreateSection("Automation")
+
+MainTab:CreateToggle({
+    Name = "Auto Click",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        AutoClick = Value
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "Auto Sell Fish",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        AutoSell = Value
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "Auto Equip Best Fish",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        AutoBestFish = Value
+    end
+})
+
+MainTab:CreateLabel(
+    "Best Fish check interval: 2 minutes 30 seconds"
+)
+
+--==================================================
+-- EGG
+--==================================================
+
+local EggTab = Window:CreateTab("Egg", 4483362458)
+
+EggTab:CreateSection("Egg Settings")
+
+EggTab:CreateInput({
+    Name = "Egg Type",
+    CurrentValue = "1",
+    PlaceholderText = "1 - 4",
+    RemoveTextAfterFocusLost = false,
+
+    Callback = function(Value)
+
+        local Number = tonumber(Value)
+
+        if Number then
+            EggType = math.clamp(
+                math.floor(Number),
+                1,
+                4
+            )
+        end
+
+    end
+})
+
+EggTab:CreateInput({
+    Name = "Egg Amount",
+    CurrentValue = "1",
+    PlaceholderText = "Example: 500",
+    RemoveTextAfterFocusLost = false,
+
+    Callback = function(Value)
+
+        local Number = tonumber(Value)
+
+        if Number and Number > 0 then
+            EggAmount = math.floor(Number)
+        end
+
+    end
+})
+
+EggTab:CreateToggle({
+    Name = "Auto Buy Egg",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        AutoEgg = Value
+    end
+})
+
+EggTab:CreateLabel("Egg Type: 1 - 4")
+
+--==================================================
+-- SHOP
+--==================================================
+
+local ShopTab = Window:CreateTab("Shop", 4483362458)
+
+ShopTab:CreateSection("Pump")
+
+ShopTab:CreateToggle({
+    Name = "Auto Buy Best Pump",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        AutoPump = Value
+    end
+})
+
+ShopTab:CreateLabel(
+    "Automatically checks Pump IDs from highest to lowest."
+)
+
+ShopTab:CreateSection("Aura")
+
+ShopTab:CreateToggle({
+    Name = "Auto Buy Best Aura",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        AutoAura = Value
+    end
+})
+
+ShopTab:CreateLabel(
+    "Automatically checks Aura IDs from highest to lowest."
+)
+
+--==================================================
+-- UPGRADE
+--==================================================
+
+local UpgradeTab = Window:CreateTab("Upgrade", 4483362458)
+
+UpgradeTab:CreateSection("Cash Upgrade")
+
+UpgradeTab:CreateToggle({
+    Name = "Upgrade Speed",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        UpgradeSpeed = Value
+    end
+})
+
+UpgradeTab:CreateToggle({
+    Name = "Upgrade Backpack",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        UpgradeBackpack = Value
+    end
+})
+
+UpgradeTab:CreateToggle({
+    Name = "Upgrade Fish Display",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        UpgradeFishDisplay = Value
+    end
+})
+
+UpgradeTab:CreateLabel(
+    "Insufficient Cash does not stop Auto Upgrade."
+)
+
+--==================================================
+-- REBIRTH
+--==================================================
+
+local RebirthTab = Window:CreateTab("Rebirth", 4483362458)
+
+RebirthTab:CreateSection("Rebirth")
+
+RebirthTab:CreateToggle({
+    Name = "Auto Rebirth",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        AutoRebirth = Value
+    end
+})
+
+RebirthTab:CreateLabel(
+    "Insufficient level does not stop Auto Rebirth."
+)
+
+--==================================================
+-- MISC
+--==================================================
+
+local MiscTab = Window:CreateTab("Misc", 4483362458)
+
+MiscTab:CreateSection("Character")
+
+MiscTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 250},
+    Increment = 1,
+    Suffix = " Speed",
+    CurrentValue = 16,
+
+    Callback = function(Value)
+
+        WalkSpeed = Value
+
+        local Character = LocalPlayer.Character
+
+        if Character then
+
+            local Humanoid =
+                Character:FindFirstChildOfClass("Humanoid")
+
+            if Humanoid then
+                Humanoid.WalkSpeed = Value
+            end
+
+        end
+
+    end
+})
+
+MiscTab:CreateToggle({
+    Name = "Anti AFK",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        AntiAFK = Value
+    end
+})
+
+MiscTab:CreateSection("Performance")
+
+MiscTab:CreateToggle({
+    Name = "Anti Lag",
+    CurrentValue = false,
+
+    Callback = function(Value)
+
+        AntiLag = Value
+
+        if Value then
+
+            for _, Object in ipairs(workspace:GetDescendants()) do
+
+                pcall(function()
+
+                    if Object:IsA("ParticleEmitter")
+                    or Object:IsA("Trail")
+                    or Object:IsA("Smoke")
+                    or Object:IsA("Fire") then
+
+                        Object.Enabled = false
+
+                    elseif Object:IsA("BasePart") then
+
+                        Object.Material =
+                            Enum.Material.SmoothPlastic
+
+                    end
+
+                end)
+
+            end
+
+        end
+
+    end
+})
+
+MiscTab:CreateToggle({
+    Name = "Mute All SFX",
+    CurrentValue = false,
+
+    Callback = function(Value)
+
+        MuteSFX = Value
+
+        if Value then
+
+            -- Mute existing sounds
+            for _, Object in ipairs(game:GetDescendants()) do
+
+                pcall(function()
+
+                    if Object:IsA("Sound") then
+                        Object.Volume = 0
+                        Object:Stop()
+                    end
+
+                end)
+
+            end
+
+        end
+
+    end
+})
+
+MiscTab:CreateSection("Notifications")
+
+MiscTab:CreateToggle({
+    Name = "Hide All Notifications",
+    CurrentValue = false,
+
+    Callback = function(Value)
+        HideNotifications = Value
+    end
+})
+
+--==================================================
+-- AUTO CLICK
+--==================================================
+
+task.spawn(function()
+
+    while task.wait(0.0001) do
+
+        if AutoClick then
+
+            pcall(function()
+                ClickEvent:FireServer(131)
+            end)
+
+        end
+
+    end
+
+end)
+
+--==================================================
+-- AUTO SELL
+--==================================================
+
+task.spawn(function()
+
+    while task.wait(1) do
+
+        if AutoSell then
+
+            pcall(function()
+
+                SellFish:InvokeServer(
+                    "OFF",
+                    false
+                )
+
+            end)
+
+        end
+
+    end
+
+end)
+
+--==================================================
+-- AUTO BEST FISH
+-- 150 SECONDS
+--==================================================
+
+task.spawn(function()
+
+    while true do
+
+        if AutoBestFish then
+
+            pcall(function()
+                BestFish:InvokeServer()
+            end)
+
+        end
+
+        task.wait(150)
+
+    end
+
+end)
+
+--==================================================
+-- AUTO REBIRTH
+--==================================================
+
+task.spawn(function()
+
+    while task.wait(1) do
+
+        if AutoRebirth then
+
+            pcall(function()
+                Rebirth:FireServer()
+            end)
+
+        end
+
+    end
+
+end)
+
+--==================================================
+-- AUTO UPGRADE
+--==================================================
+
+task.spawn(function()
+
+    while task.wait(0.2) do
+
+        if UpgradeSpeed then
+
+            pcall(function()
+                Upgrade:FireServer("Speed")
+            end)
+
+        end
+
+        if UpgradeBackpack then
+
+            pcall(function()
+                Upgrade:FireServer("Backpack")
+            end)
+
+        end
+
+        if UpgradeFishDisplay then
+
+            pcall(function()
+                Upgrade:FireServer("FishDisplay")
+            end)
+
+        end
+
+    end
+
+end)
+
+--==================================================
+-- AUTO BUY EGG
+--==================================================
+
+task.spawn(function()
+
+    while task.wait(0.5) do
+
+        if AutoEgg then
+
+            pcall(function()
+
+                OpenEgg:InvokeServer(
+                    EggType,
+                    EggAmount,
+                    false,
+                    nil
+                )
+
+            end)
+
+        end
+
+    end
+
+end)
+
+--==================================================
+-- AUTO BEST PUMP
+--==================================================
+
+task.spawn(function()
+
+    while task.wait(2) do
+
+        if AutoPump then
+
+            pcall(function()
+
+                for ID = PUMP_MAX_ID, 1, -1 do
+
+                    if not AutoPump then
+                        break
+                    end
+
+                    BuyPump:FireServer(ID)
+
+                    task.wait(0.1)
+
+                end
+
+            end)
+
+        end
+
+    end
+
+end)
+
+--==================================================
+-- AUTO BEST AURA
+--==================================================
+
+task.spawn(function()
+
+    while task.wait(2) do
+
+        if AutoAura then
+
+            pcall(function()
+
+                for ID = AURA_MAX_ID, 1, -1 do
+
+                    if not AutoAura then
+                        break
+                    end
+
+                    BuyAura:FireServer(ID)
+
+                    task.wait(0.1)
+
+                end
+
+            end)
+
+        end
+
+    end
+
+end)
+
+--==================================================
+-- ANTI AFK
+--==================================================
+
+LocalPlayer.Idled:Connect(function()
+
+    if AntiAFK then
+
+        pcall(function()
+
+            VirtualUser:CaptureController()
+
+            VirtualUser:ClickButton2(
+                Vector2.new()
+            )
+
+        end)
+
+    end
+
+end)
+
+--==================================================
+-- MUTE SFX
+-- IMPORTANT:
+-- Existing + newly-created sounds
+--==================================================
+
+game.DescendantAdded:Connect(function(Object)
+
+    if MuteSFX then
+
+        pcall(function()
+
+            if Object:IsA("Sound") then
+                Object.Volume = 0
+                Object:Stop()
+            end
+
+        end)
+
+    end
+
+end)
+
+task.spawn(function()
+
+    while task.wait(1) do
+
+        if MuteSFX then
+
+            pcall(function()
+
+                for _, Object in ipairs(game:GetDescendants()) do
+
+                    if Object:IsA("Sound") then
+                        Object.Volume = 0
+                    end
+
+                end
+
+            end)
+
+        end
+
+    end
+
+end)
+
+--==================================================
+-- HIDE ALL NOTIFICATIONS
+-- Lightweight version
+--==================================================
+
+task.spawn(function()
+
+    while task.wait(0.5) do
+
+        if HideNotifications then
+
+            pcall(function()
+
+                local PlayerGui =
+                    LocalPlayer:FindFirstChild("PlayerGui")
+
+                if not PlayerGui then
+                    return
+                end
+
+                for _, Gui in ipairs(
+                    PlayerGui:GetChildren()
+                ) do
+
+                    local Name =
+                        string.lower(Gui.Name)
+
+                    if string.find(
+                        Name,
+                        "notification",
+                        1,
+                        true
+                    )
+                    or string.find(
+                        Name,
+                        "notif",
+                        1,
+                        true
+                    )
+                    or string.find(
+                        Name,
+                        "toast",
+                        1,
+                        true
+                    )
+                    or string.find(
+                        Name,
+                        "message",
+                        1,
+                        true
+                    )
+                    or string.find(
+                        Name,
+                        "popup",
+                        1,
+                        true
+                    ) then
+
+                        if Gui:IsA("ScreenGui") then
+                            Gui.Enabled = false
+                        end
+
+                    end
+
+                end
+
+            end)
+
+        end
+
+    end
+
+end)
+
+--==================================================
+-- CHARACTER RESPAWN
+--==================================================
+
+LocalPlayer.CharacterAdded:Connect(function(Character)
+
+    task.wait(1)
+
+    local Humanoid =
+        Character:WaitForChild("Humanoid")
+
+    Humanoid.WalkSpeed = WalkSpeed
+
+end)
+
+--==================================================
+-- LOADED
+--==================================================
+
+Rayfield:Notify({
+    Title = "SympleHUB",
+    Content = "Successfully loaded.",
+    Duration = 4
+})
